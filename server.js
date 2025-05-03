@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
@@ -7,6 +8,14 @@ const { User } = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// MongoDB connection setup
+mongoose.connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+  })
+  .then(() => console.log('MongoDB connected successfully'))
+  .catch(err => console.error('MongoDB connection error:', err));
+  
 // Middleware
 app.use(cors());
 app.use(express.json());
