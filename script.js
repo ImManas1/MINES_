@@ -766,23 +766,130 @@ balanceStyle.textContent = `
 `;
 document.head.appendChild(balanceStyle);
 
-// Update the initializeGame function
-function initializeGame() {
-    // ... existing initialization code ...
+// Friends System
+async function searchFriends() {
+    const searchInput = document.getElementById('friend-search');
+    const query = searchInput.value.trim();
     
-    // Friends system initialization (Commented out for future use)
-    /*
-    updateFriendRequests();
-    updateFriendsList();
+    if (!query) {
+        const existingResults = document.querySelector('.search-results');
+        if (existingResults) {
+            existingResults.remove();
+        }
+        return;
+    }
+
+    try {
+        const users = await searchUsers(query);
+        const existingResults = document.querySelector('.search-results');
+        if (existingResults) {
+            existingResults.remove();
+        }
+
+        const searchResults = document.createElement('div');
+        searchResults.className = 'search-results';
+
+        if (users.length === 0) {
+            searchResults.innerHTML = '<div class="search-result-item">No users found</div>';
+        } else {
+            users.forEach(user => {
+                const resultItem = document.createElement('div');
+                resultItem.className = 'search-result-item';
+                resultItem.innerHTML = `
+                    <div>${user.username}</div>
+                    <button class="add-friend-btn" onclick="sendFriendRequest('${user._id}')">Add Friend</button>
+                `;
+                searchResults.appendChild(resultItem);
+            });
+        }
+
+        searchInput.parentNode.appendChild(searchResults);
+    } catch (error) {
+        console.error('Failed to search users:', error);
+        alert('Failed to search users. Please try again.');
+    }
+}
+
+async function updateFriendRequests() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/profile`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const user = await response.json();
+        
+        const requestsList = document.getElementById('friend-requests-list');
+        requestsList.innerHTML = '';
+
+        if (user.friendRequests.length === 0) {
+            requestsList.innerHTML = '<div class="no-requests">No friend requests</div>';
+            return;
+        }
+
+        user.friendRequests.forEach(request => {
+            if (request.status === 'pending') {
+                const requestItem = document.createElement('div');
+                requestItem.className = 'friend-request-item';
+                requestItem.innerHTML = `
+                    <div>${request.from.username}</div>
+                    <div class="friend-request-actions">
+                        <button class="accept-request" onclick="handleFriendRequest('${request._id}', 'accept')">Accept</button>
+                        <button class="reject-request" onclick="handleFriendRequest('${request._id}', 'reject')">Reject</button>
+                    </div>
+                `;
+                requestsList.appendChild(requestItem);
+            }
+        });
+    } catch (error) {
+        console.error('Failed to update friend requests:', error);
+    }
+}
+
+async function updateFriendsList() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/profile`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const user = await response.json();
+        
+        const friendsList = document.getElementById('friends-list');
+        friendsList.innerHTML = '';
+
+        if (user.friends.length === 0) {
+            friendsList.innerHTML = '<div class="no-friends">No friends yet</div>';
+            return;
+        }
+
+        user.friends.forEach(friend => {
+            const friendItem = document.createElement('div');
+            friendItem.className = 'friend-item';
+            friendItem.innerHTML = `
+                <div>${friend.username}</div>
+                <div class="friend-status ${friend.online ? 'online' : 'offline'}">
+                    ${friend.online ? 'Online' : 'Offline'}
+                </div>
+            `;
+            friendsList.appendChild(friendItem);
+        });
+    } catch (error) {
+        console.error('Failed to update friends list:', error);
+    }
+}
+
+// Update initializeGame function
+async function initializeGame() {
+    updatePreGameStats();
+    updateTransactionHistory();
+    initializeGameBoard();
+    await updateFriendRequests();
+    await updateFriendsList();
     
     const searchInput = document.getElementById('friend-search');
     if (searchInput) {
         searchInput.addEventListener('input', searchFriends);
     }
-    */
 }
 
-// Update the handleLogin function
+// Update handleLogin function
 async function handleLogin(event) {
     event.preventDefault();
     const username = document.getElementById('username').value;
