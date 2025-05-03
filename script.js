@@ -1,4 +1,5 @@
 // Game state
+
 let currentUser = null;
 let gameState = {
     balance: 1000,
@@ -11,7 +12,7 @@ let gameState = {
 };
 
 // API Configuration
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'https://mines-ez7j.onrender.com/api';
 let authToken = null;
 
 // Initialize the game
@@ -102,16 +103,29 @@ async function updateGameState(type, amount) {
     }
 }
 
+// Add error handling middleware
+async function handleApiError(error) {
+    console.error('API Error:', error);
+    if (error.message === 'Failed to fetch') {
+        alert('Cannot connect to the server. Please make sure the server is running.');
+    } else {
+        alert(error.message || 'An error occurred. Please try again.');
+    }
+}
+
 // Friend System
 async function searchUsers(query) {
     try {
         const response = await fetch(`${API_BASE_URL}/users/search?query=${query}`, {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error);
-        return data;
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to search users');
+        }
+        return await response.json();
     } catch (error) {
+        handleApiError(error);
         throw error;
     }
 }
@@ -126,12 +140,15 @@ async function sendFriendRequest(userId) {
             },
             body: JSON.stringify({ userId })
         });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to send friend request');
+        }
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error);
         alert('Friend request sent successfully!');
         return data;
     } catch (error) {
-        alert(error.message);
+        handleApiError(error);
         throw error;
     }
 }
@@ -146,8 +163,11 @@ async function handleFriendRequest(requestId, action) {
             },
             body: JSON.stringify({ action })
         });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to process friend request');
+        }
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error);
         
         if (action === 'accept') {
             alert('Friend request accepted!');
@@ -159,7 +179,7 @@ async function handleFriendRequest(requestId, action) {
         await updateFriendsList();
         return data;
     } catch (error) {
-        alert(error.message);
+        handleApiError(error);
         throw error;
     }
 }
@@ -839,6 +859,10 @@ async function updateFriendRequests() {
         const response = await fetch(`${API_BASE_URL}/profile`, {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to fetch friend requests');
+        }
         const user = await response.json();
         
         const requestsList = document.getElementById('friend-requests-list');
@@ -864,15 +888,19 @@ async function updateFriendRequests() {
             }
         });
     } catch (error) {
-        console.error('Failed to update friend requests:', error);
+        handleApiError(error);
     }
 }
 
 async function updateFriendsList() {
     try {
-        const response = await fetch(`${API_BASE_URL}/profile`, {
+        const response = await fetch(`https://mines-ez7j.onrender.com/profile`, {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to fetch friends list');
+        }
         const user = await response.json();
         
         const friendsList = document.getElementById('friends-list');
@@ -895,7 +923,7 @@ async function updateFriendsList() {
             friendsList.appendChild(friendItem);
         });
     } catch (error) {
-        console.error('Failed to update friends list:', error);
+        handleApiError(error);
     }
 }
 
