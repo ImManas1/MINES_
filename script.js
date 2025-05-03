@@ -128,8 +128,10 @@ async function sendFriendRequest(userId) {
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
+        alert('Friend request sent successfully!');
         return data;
     } catch (error) {
+        alert(error.message);
         throw error;
     }
 }
@@ -146,8 +148,18 @@ async function handleFriendRequest(requestId, action) {
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
+        
+        if (action === 'accept') {
+            alert('Friend request accepted!');
+        } else {
+            alert('Friend request rejected.');
+        }
+        
+        await updateFriendRequests();
+        await updateFriendsList();
         return data;
     } catch (error) {
+        alert(error.message);
         throw error;
     }
 }
@@ -793,6 +805,9 @@ async function searchFriends() {
             searchResults.innerHTML = '<div class="search-result-item">No users found</div>';
         } else {
             users.forEach(user => {
+                // Skip current user from search results
+                if (user._id === currentUser._id) return;
+                
                 const resultItem = document.createElement('div');
                 resultItem.className = 'search-result-item';
                 resultItem.innerHTML = `
@@ -803,7 +818,16 @@ async function searchFriends() {
             });
         }
 
-        searchInput.parentNode.appendChild(searchResults);
+        const searchContainer = searchInput.parentNode;
+        searchContainer.appendChild(searchResults);
+
+        // Close search results when clicking outside
+        document.addEventListener('click', function closeResults(e) {
+            if (!searchContainer.contains(e.target)) {
+                searchResults.remove();
+                document.removeEventListener('click', closeResults);
+            }
+        });
     } catch (error) {
         console.error('Failed to search users:', error);
         alert('Failed to search users. Please try again.');
@@ -880,25 +904,40 @@ async function initializeGame() {
     updatePreGameStats();
     updateTransactionHistory();
     initializeGameBoard();
-    await updateFriendRequests();
-    await updateFriendsList();
     
+    // Initialize friends system
     const searchInput = document.getElementById('friend-search');
     if (searchInput) {
-        searchInput.addEventListener('input', searchFriends);
+        searchInput.addEventListener('input', debounce(searchFriends, 300));
     }
+    
+    await updateFriendRequests();
+    await updateFriendsList();
+}
+
+// Add debounce utility function
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
 }
 
 // Update handleLogin function
 async function handleLogin(event) {
     event.preventDefault();
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
+    const username = document.getElementById('login-username').value;
+    const password = document.getElementById('login-password').value;
 
     try {
         await login(username, password);
-        document.getElementById('login-form').style.display = 'none';
-        document.getElementById('game-container').style.display = 'block';
+        document.getElementById('auth-section').style.display = 'none';
+        document.getElementById('game-section').classList.remove('hidden');
         await initializeGame();
     } catch (error) {
         alert(error.message);
